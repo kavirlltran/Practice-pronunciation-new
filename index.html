@@ -51,6 +51,9 @@
       transition: background-color 0.3s, transform 0.2s;
       border-radius: 8px;
       background-color: rgba(255,255,255,0.05);
+      /* Cho phép tự động xuống dòng nếu nội dung quá dài */
+      white-space: normal;
+      overflow-wrap: break-word;
     }
     .sentence.selected {
       background-color: rgba(0, 170, 255, 0.2);
@@ -136,6 +139,9 @@
       border: 1px solid #00aaff;
       border-radius: 8px;
       background-color: rgba(0, 0, 0, 0.5);
+      /* Cho phép tự động xuống dòng nếu transcript quá dài */
+      white-space: normal;
+      overflow-wrap: break-word;
     }
     /* Media query cho thiết bị di động */
     @media (max-width: 600px) {
@@ -182,7 +188,6 @@
         navigator.mediaDevices.getUserMedia({ audio: true })
           .then(function(stream) {
             console.log("Microphone access granted.");
-            // Stream có thể được dừng lại nếu không sử dụng (không cần gán cho SpeechRecognition)
             stream.getTracks().forEach(track => track.stop());
           })
           .catch(function(err) {
