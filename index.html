@@ -51,8 +51,7 @@
       transition: background-color 0.3s, transform 0.2s;
       border-radius: 8px;
       background-color: rgba(255,255,255,0.05);
-      /* Cho phép xuống dòng nếu cần */
-      white-space: normal;
+      white-space: normal; /* Cho phép xuống dòng nếu cần */
     }
     .sentence.selected {
       background-color: rgba(0, 170, 255, 0.2);
@@ -63,8 +62,7 @@
       margin-right: 5px;
       font-size: 1.1em;
       font-weight: 400;
-      /* Mỗi từ hiển thị nguyên vẹn không bị cắt ra */
-      display: inline-block;
+      display: inline-block; /* Mỗi từ hiển thị nguyên vẹn */
       white-space: nowrap;
     }
     /* Các từ trọng âm được hiển thị xanh neon, đậm và có bóng chữ */
@@ -83,7 +81,8 @@
       margin: 20px 0;
       text-align: center;
     }
-    #recordBtn {
+    /* Các nút được thiết kế đồng nhất */
+    .control-btn {
       padding: 12px 24px;
       font-size: 1.1em;
       border: none;
@@ -92,9 +91,14 @@
       color: #fff;
       cursor: pointer;
       transition: background-color 0.3s;
+      margin: 0 5px;
     }
-    #recordBtn:hover {
+    .control-btn:hover:not(:disabled) {
       background-color: #0088cc;
+    }
+    .control-btn:disabled {
+      background-color: #555;
+      cursor: not-allowed;
     }
     /* Biểu tượng âm thanh nhấp nháy khi ghi âm */
     #recordIcon {
@@ -129,7 +133,7 @@
       font-size: 1em;
       text-shadow: 0 1px 3px rgba(0,0,0,0.5);
     }
-    /* Transcript nổi bật: font lớn, đậm, có nền mờ, padding và viền */
+    /* Transcript nổi bật: font lớn, đậm, nền mờ, padding và viền */
     #transcript {
       margin-top: 20px;
       font-style: italic;
@@ -152,7 +156,7 @@
       p, #status, #transcript {
         font-size: 1em;
       }
-      #recordBtn {
+      .control-btn {
         font-size: 1em;
         padding: 10px 20px;
       }
@@ -175,7 +179,8 @@
     <div id="sentences"></div>
 
     <div id="controls">
-      <button id="recordBtn">Record</button>
+      <button id="recordBtn" class="control-btn">Record</button>
+      <button id="stopBtn" class="control-btn" disabled>Stop</button>
       <span id="recordIcon" class="hidden"></span>
       <p id="status"></p>
     </div>
@@ -196,6 +201,7 @@
             console.log("Microphone access denied: " + err);
             alert("Microphone access denied. Recording functionality will be disabled.");
             recordBtn.disabled = true;
+            stopBtn.disabled = true;
           });
       }
     }
@@ -222,6 +228,7 @@
     let isRecording = false;
     const sentencesDiv = document.getElementById("sentences");
     const recordBtn = document.getElementById("recordBtn");
+    const stopBtn = document.getElementById("stopBtn");
     const recordIcon = document.getElementById("recordIcon");
     const statusEl = document.getElementById("status");
     const transcriptEl = document.getElementById("transcript");
@@ -329,29 +336,33 @@
     if (!SpeechRecognition) {
       alert("Your browser does not support Speech Recognition. Please use Chrome or Edge.");
       recordBtn.disabled = true;
+      stopBtn.disabled = true;
     } else {
       const recognition = new SpeechRecognition();
-      recognition.continuous = true; // Không tự động dừng, dừng khi người dùng nhấn "Stop"
+      recognition.continuous = true; // Ghi âm liên tục cho đến khi người dùng nhấn Stop
       recognition.interimResults = false;
       recognition.lang = "en-US";
 
       recognition.onstart = function () {
         isRecording = true;
-        statusEl.textContent = "Recording... Please read the selected sentence. Click 'Stop' when done.";
-        recordBtn.textContent = "Stop";
+        statusEl.textContent = "Recording... Please read the selected sentence.";
         recordIcon.classList.remove("hidden");
+        recordBtn.disabled = true;
+        stopBtn.disabled = false;
       };
 
       recognition.onerror = function (event) {
         statusEl.textContent = "Error occurred during recording: " + event.error;
         isRecording = false;
-        recordBtn.textContent = "Record";
+        recordBtn.disabled = false;
+        stopBtn.disabled = true;
         recordIcon.classList.add("hidden");
       };
 
       recognition.onend = function () {
         isRecording = false;
-        recordBtn.textContent = "Record";
+        recordBtn.disabled = false;
+        stopBtn.disabled = true;
         recordIcon.classList.add("hidden");
       };
 
@@ -364,16 +375,19 @@
         evaluateTranscript(transcript);
       };
 
-      // Khi nhấn nút, bắt đầu hoặc dừng ghi âm (người dùng tự nhấn Stop để dừng)
+      // Khi nhấn nút Record, bắt đầu ghi âm
       recordBtn.addEventListener("click", function () {
         if (selectedSentenceIndex === null) {
           alert("Please select a sentence before recording!");
           return;
         }
         resetDisplay();
-        if (!isRecording) {
-          recognition.start();
-        } else {
+        recognition.start();
+      });
+
+      // Khi nhấn nút Stop, dừng ghi âm
+      stopBtn.addEventListener("click", function () {
+        if (isRecording) {
           recognition.stop();
         }
       });
