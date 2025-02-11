@@ -51,9 +51,8 @@
       transition: background-color 0.3s, transform 0.2s;
       border-radius: 8px;
       background-color: rgba(255,255,255,0.05);
-      /* Cho phép tự động xuống dòng nếu nội dung quá dài */
+      /* Cho phép xuống dòng nếu cần */
       white-space: normal;
-      overflow-wrap: break-word;
     }
     .sentence.selected {
       background-color: rgba(0, 170, 255, 0.2);
@@ -64,6 +63,9 @@
       margin-right: 5px;
       font-size: 1.1em;
       font-weight: 400;
+      /* Đảm bảo mỗi từ luôn hiển thị nguyên vẹn không bị cắt ra */
+      display: inline-block;
+      white-space: nowrap;
     }
     /* Các từ trọng âm được hiển thị xanh neon, đậm và có bóng chữ */
     .word.stressed {
@@ -139,7 +141,6 @@
       border: 1px solid #00aaff;
       border-radius: 8px;
       background-color: rgba(0, 0, 0, 0.5);
-      /* Cho phép tự động xuống dòng nếu transcript quá dài */
       white-space: normal;
       overflow-wrap: break-word;
     }
