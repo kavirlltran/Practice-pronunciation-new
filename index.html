@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Speech Evaluation Demo</title>
-  <!-- Sử dụng font Roboto từ Google Fonts -->
+  <!-- Import font Roboto từ Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    /* Reset một số thiết lập và đảm bảo box-sizing cho mọi phần tử */
+    /* Reset và box-sizing */
     * {
       box-sizing: border-box;
     }
@@ -17,7 +17,7 @@
       padding: 0;
       font-family: 'Roboto', sans-serif;
       background-color: #121212;
-      /* Hiệu ứng nền kiểu công nghệ dạng chấm */
+      /* Nền kiểu công nghệ với hiệu ứng chấm */
       background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
                         radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
       background-size: 50px 50px;
@@ -25,7 +25,7 @@
       line-height: 1.6;
       padding: 20px;
     }
-    /* Container giúp căn giữa nội dung */
+    /* Container căn giữa nội dung */
     .container {
       max-width: 600px;
       margin: auto;
@@ -62,13 +62,13 @@
       font-size: 1.1em;
       font-weight: 400;
     }
-    /* Các từ trọng âm (content words) được tô màu xanh neon, đậm và có bóng chữ */
+    /* Các từ trọng âm được hiển thị xanh neon, đậm và có bóng chữ */
     .word.stressed {
       color: #00ff00;
       font-weight: 700;
       text-shadow: 0 0 5px rgba(0,255,0,0.5);
     }
-    /* Từ đọc sai sẽ hiển thị màu đỏ */
+    /* Từ phát âm sai được hiển thị màu đỏ */
     .word.error {
       color: #ff4444 !important;
       font-weight: 700;
@@ -91,7 +91,7 @@
     #recordBtn:hover {
       background-color: #0088cc;
     }
-    /* Biểu tượng âm thanh nhấp nháy */
+    /* Biểu tượng âm thanh nhấp nháy khi ghi âm */
     #recordIcon {
       display: inline-block;
       margin-left: 10px;
@@ -124,14 +124,20 @@
       font-size: 1em;
       text-shadow: 0 1px 3px rgba(0,0,0,0.5);
     }
+    /* Transcript nổi bật: font lớn, đậm, có nền mờ, padding và viền */
     #transcript {
       margin-top: 20px;
       font-style: italic;
       text-align: center;
-      font-size: 1.1em;
+      font-size: 1.3em;
+      font-weight: bold;
       text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+      padding: 10px;
+      border: 1px solid #00aaff;
+      border-radius: 8px;
+      background-color: rgba(0, 0, 0, 0.5);
     }
-    /* Media query cho điện thoại */
+    /* Media query cho thiết bị di động */
     @media (max-width: 600px) {
       h1 {
         font-size: 1.8em;
@@ -153,7 +159,9 @@
   <div class="container">
     <h1>Speech Evaluation Demo</h1>
     <p>
-      Select one of the sentences below, then press the "Record" button and read the selected sentence. The system will record your voice, compare it with the original text, and highlight any mispronounced words in red. Content words are highlighted in green.
+      Select one of the sentences below, then press the "Record" button and read the selected sentence.
+      The system will record your voice, compare it with the original text, and highlight any mispronounced words in red.
+      Content words are highlighted in green.
     </p>
 
     <div id="sentences"></div>
@@ -168,7 +176,24 @@
   </div>
 
   <script>
-    // Danh sách 5 câu cho sẵn
+    // Yêu cầu truy cập microphone ngay khi load trang
+    function requestMicAccess() {
+      if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ audio: true })
+          .then(function(stream) {
+            console.log("Microphone access granted.");
+            // Stream có thể được dừng lại nếu không sử dụng (không cần gán cho SpeechRecognition)
+            stream.getTracks().forEach(track => track.stop());
+          })
+          .catch(function(err) {
+            console.log("Microphone access denied: " + err);
+            alert("Microphone access denied. Recording functionality will be disabled.");
+            recordBtn.disabled = true;
+          });
+      }
+    }
+
+    // List of 5 preset sentences
     const sentences = [
       "We should finish the project for our history class",
       "Peter is revising for his exam next week",
@@ -177,7 +202,7 @@
       "I have installed some apps on my phone"
     ];
 
-    // Mapping của các từ trọng âm (content words) cho từng câu (đã chuyển về lower-case để so sánh)
+    // Mapping các từ trọng âm (content words) theo từng câu (chuyển sang lower-case để so sánh)
     const contentWordsMapping = {
       0: ["finish", "project", "history", "class"],
       1: ["peter", "revising", "exam", "next", "week"],
@@ -194,7 +219,7 @@
     const statusEl = document.getElementById("status");
     const transcriptEl = document.getElementById("transcript");
 
-    // Render danh sách các câu, với mỗi từ được đánh dấu nếu là content word theo mapping
+    // Render danh sách các câu với các từ trọng âm được làm nổi bật theo mapping
     function renderSentences() {
       sentencesDiv.innerHTML = "";
       sentences.forEach((sentence, idx) => {
@@ -206,11 +231,10 @@
           renderSentences();
         });
 
-        // Tách câu thành các từ
+        // Tách câu thành các từ và áp dụng lớp stressed nếu từ nằm trong mapping của câu đó
         sentence.split(" ").forEach((word) => {
           const span = document.createElement("span");
           span.classList.add("word");
-          // Loại bỏ dấu câu và chuyển về lower-case để so sánh
           const normalizedWord = word.replace(/[.,?!]/g, "").toLowerCase();
           if (contentWordsMapping[idx] && contentWordsMapping[idx].includes(normalizedWord)) {
             span.classList.add("stressed");
@@ -222,7 +246,7 @@
       });
     }
 
-    // Xóa nội dung transcript, status và xóa lớp lỗi của các từ
+    // Reset transcript, status và loại bỏ lớp error khỏi các từ
     function resetDisplay() {
       transcriptEl.textContent = "";
       statusEl.textContent = "";
@@ -231,7 +255,7 @@
         const spans = div.querySelectorAll("span.word");
         spans.forEach((span) => {
           span.classList.remove("error");
-          // Nếu đây là câu đang được chọn, tái áp dụng lớp stressed nếu từ này nằm trong mapping
+          // Nếu câu đang được chọn, tái áp dụng lớp stressed nếu từ nằm trong mapping
           const wordNormalized = span.textContent.replace(/[.,?!]/g, "").toLowerCase();
           if (selectedSentenceIndex !== null &&
               contentWordsMapping[selectedSentenceIndex] &&
@@ -244,12 +268,12 @@
 
     renderSentences();
 
-    // Hàm normalize: loại bỏ dấu câu và chuyển về lower-case
+    // Hàm normalize: loại bỏ dấu câu và chuyển về chữ thường
     function normalize(word) {
       return word.replace(/[.,?!]/g, "").toLowerCase();
     }
 
-    // So sánh transcript nhận được với câu gốc, đánh dấu từ bị lỗi
+    // So sánh transcript với câu gốc và đánh dấu từ sai
     function evaluateTranscript(transcript) {
       if (selectedSentenceIndex === null) {
         alert("Please select a sentence before recording!");
@@ -285,7 +309,7 @@
       }
     }
 
-    // Phát gợi ý âm thanh cho các từ bị lỗi bằng SpeechSynthesis
+    // Cung cấp gợi ý âm thanh cho các từ sai qua SpeechSynthesis
     function provideAudioGuidance(errorWords) {
       const synth = window.speechSynthesis;
       const msgText = "Please listen and repeat the following words correctly: " + errorWords.join(", ");
@@ -294,7 +318,7 @@
       synth.speak(utterThis);
     }
 
-    // Kiểm tra hỗ trợ SpeechRecognition của trình duyệt
+    // Kiểm tra hỗ trợ SpeechRecognition
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       alert("Your browser does not support Speech Recognition. Please use Chrome or Edge.");
@@ -345,6 +369,9 @@
         }
       });
     }
+
+    // Yêu cầu truy cập microphone ngay khi trang load
+    requestMicAccess();
   </script>
 </body>
 </html>
