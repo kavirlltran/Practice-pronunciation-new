@@ -226,6 +226,9 @@
 
     let selectedSentenceIndex = null;
     let isRecording = false;
+    let manualStop = false; // Cờ để đánh dấu dừng ghi âm thủ công
+    let finalTranscript = ""; // Biến lưu lại toàn bộ transcript
+
     const sentencesDiv = document.getElementById("sentences");
     const recordBtn = document.getElementById("recordBtn");
     const stopBtn = document.getElementById("stopBtn");
@@ -351,28 +354,34 @@
         stopBtn.disabled = false;
       };
 
+      // Khi có kết quả, ta tích lũy vào finalTranscript
+      recognition.onresult = function (event) {
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          finalTranscript += event.results[i][0].transcript + " ";
+        }
+      };
+
+      // Khi ghi âm kết thúc (do auto-stop hoặc do người dùng nhấn Stop)
+      recognition.onend = function () {
+        // Nếu người dùng chưa nhấn Stop thì tự động khởi động lại ghi âm
+        if (!manualStop) {
+          recognition.start();
+        } else {
+          isRecording = false;
+          recordBtn.disabled = false;
+          stopBtn.disabled = true;
+          recordIcon.classList.add("hidden");
+          statusEl.textContent = "Recording stopped. Evaluating...";
+          evaluateTranscript(finalTranscript);
+        }
+      };
+
       recognition.onerror = function (event) {
         statusEl.textContent = "Error occurred during recording: " + event.error;
         isRecording = false;
         recordBtn.disabled = false;
         stopBtn.disabled = true;
         recordIcon.classList.add("hidden");
-      };
-
-      recognition.onend = function () {
-        isRecording = false;
-        recordBtn.disabled = false;
-        stopBtn.disabled = true;
-        recordIcon.classList.add("hidden");
-      };
-
-      recognition.onresult = function (event) {
-        const transcript = Array.from(event.results)
-          .map(result => result[0])
-          .map(result => result.transcript)
-          .join(" ");
-        statusEl.textContent = "Recording finished. Evaluating...";
-        evaluateTranscript(transcript);
       };
 
       // Khi nhấn nút Record, bắt đầu ghi âm
@@ -382,12 +391,15 @@
           return;
         }
         resetDisplay();
+        manualStop = false; // đánh dấu không dừng thủ công
+        finalTranscript = ""; // xóa transcript cũ
         recognition.start();
       });
 
-      // Khi nhấn nút Stop, dừng ghi âm
+      // Khi nhấn nút Stop, dừng ghi âm thủ công
       stopBtn.addEventListener("click", function () {
         if (isRecording) {
+          manualStop = true; // đánh dấu dừng thủ công
           recognition.stop();
         }
       });
