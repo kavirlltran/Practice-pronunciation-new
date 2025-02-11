@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Speech Evaluation Demo</title>
+  <title>Evaluate pronunciation</title>
   <!-- Import font Roboto từ Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <style>
@@ -63,7 +63,7 @@
       margin-right: 5px;
       font-size: 1.1em;
       font-weight: 400;
-      /* Đảm bảo mỗi từ luôn hiển thị nguyên vẹn không bị cắt ra */
+      /* Mỗi từ hiển thị nguyên vẹn không bị cắt ra */
       display: inline-block;
       white-space: nowrap;
     }
@@ -164,11 +164,12 @@
 </head>
 <body>
   <div class="container">
-    <h1>Speech Evaluation Demo</h1>
+    <h1>Evaluate pronunciation</h1>
     <p>
-      Select one of the sentences below, then press the "Record" button and read the selected sentence.
-      The system will record your voice, compare it with the original text, and highlight any mispronounced words in red.
-      Content words are highlighted in green.
+      Select one of the sentences below, then press the "Record" button to start recording.
+      When you finish reading, press the "Stop" button to end recording.
+      The system will compare your voice with the original text.
+      Mispronounced words will be highlighted in red while content words remain in green.
     </p>
 
     <div id="sentences"></div>
@@ -261,7 +262,6 @@
         const spans = div.querySelectorAll("span.word");
         spans.forEach((span) => {
           span.classList.remove("error");
-          // Nếu câu đang được chọn, tái áp dụng lớp stressed nếu từ nằm trong mapping
           const wordNormalized = span.textContent.replace(/[.,?!]/g, "").toLowerCase();
           if (selectedSentenceIndex !== null &&
               contentWordsMapping[selectedSentenceIndex] &&
@@ -331,13 +331,13 @@
       recordBtn.disabled = true;
     } else {
       const recognition = new SpeechRecognition();
-      recognition.continuous = false;
+      recognition.continuous = true; // Không tự động dừng, dừng khi người dùng nhấn "Stop"
       recognition.interimResults = false;
       recognition.lang = "en-US";
 
       recognition.onstart = function () {
         isRecording = true;
-        statusEl.textContent = "Recording... Please read the selected sentence.";
+        statusEl.textContent = "Recording... Please read the selected sentence. Click 'Stop' when done.";
         recordBtn.textContent = "Stop";
         recordIcon.classList.remove("hidden");
       };
@@ -356,12 +356,15 @@
       };
 
       recognition.onresult = function (event) {
-        const transcript = event.results[0][0].transcript;
+        const transcript = Array.from(event.results)
+          .map(result => result[0])
+          .map(result => result.transcript)
+          .join(" ");
         statusEl.textContent = "Recording finished. Evaluating...";
         evaluateTranscript(transcript);
       };
 
-      // Khi nhấn nút, bắt đầu hoặc dừng ghi âm
+      // Khi nhấn nút, bắt đầu hoặc dừng ghi âm (người dùng tự nhấn Stop để dừng)
       recordBtn.addEventListener("click", function () {
         if (selectedSentenceIndex === null) {
           alert("Please select a sentence before recording!");
